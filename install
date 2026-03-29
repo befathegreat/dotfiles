@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Dotfiles Installation Script
+# Automatically symlinks configuration files to the home directory
+# =============================================================================
+
+# Define the paths
+DOTFILES_DIR="$HOME/.dotfiles"
+ZSHRC_TARGET="$HOME/.zshrc"
+ZSHRC_SOURCE="$DOTFILES_DIR/dot_zshrc"
+
+echo "Starting dotfiles installation..."
+
+# Check if a regular file already exists at the target and is NOT a symlink
+if [ -f "$ZSHRC_TARGET" ] && [ ! -L "$ZSHRC_TARGET" ]; then
+    echo " • Backing up existing .zshrc to .zshrc.backup"
+    mv "$ZSHRC_TARGET" "$ZSHRC_TARGET.backup"
+fi
+
+# Create the symbolic link (-s for symbolic, -f to force overwrite if a broken link exists)
+echo " • Linking dot_zshrc to ~/.zshrc"
+ln -sf "$ZSHRC_SOURCE" "$ZSHRC_TARGET"
+
+echo "Installation complete! Restart your terminal to apply."

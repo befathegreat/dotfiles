@@ -1,111 +1,183 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
+# =============================================================================
+# ZSH Configuration File (.zshrc)
+# Structured with modular functions, dependency checks, and auto-updating
+# =============================================================================
 
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+# Global array to track any missing dependencies
+typeset -g -a ZSH_MISSING_CMDS
 
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+# --- Function Definitions ---
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="powerlevel10k/powerlevel10k"
+setup_environment() {
+    # Define environment variables and paths
+    export LANG=en_US.UTF-8
+    export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+    
+    # Automatically change directories if you just type the directory name
+    setopt auto_cd
+}
 
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+setup_history() {
+    # Configure history file and limits
+    export HISTFILE=~/.histfile
+    export HISTSIZE=999999
+    export SAVEHIST=999999
 
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
+    # Apply history best practices
+    setopt append_history
+    setopt inc_append_history
+    setopt share_history
+    setopt hist_ignore_dups
+    setopt hist_ignore_all_dups
+    setopt hist_ignore_space
+    setopt extended_glob
+    setopt notify
+}
 
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
+setup_completion() {
+    # Load and initialize the completion system
+    autoload -Uz compinit
+    compinit
 
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
+    # Configure advanced completion styling and behavior
+    zstyle ':completion:*' completer _expand _complete _ignored _correct _approximate
+    zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
+    zstyle ':completion:*' menu select
+    zstyle :compinstall filename "$HOME/.zshrc"
+}
 
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
+setup_keybindings() {
+    # Apply standard Emacs keybindings
+    bindkey -e
 
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
+    # Home, End, and Delete keys
+    bindkey '^[[H'  beginning-of-line
+    bindkey '^[OH'  beginning-of-line
+    bindkey '^[[F'  end-of-line
+    bindkey '^[OF'  end-of-line
+    bindkey '^[[3~' delete-char
 
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
+    # Ctrl + Arrow keys for word jumping
+    bindkey '^[[1;5D' backward-word
+    bindkey '^[[1;5C' forward-word
 
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
+    # Alt + Arrow keys for word jumping
+    bindkey '^[[1;3D' backward-word
+    bindkey '^[[1;3C' forward-word
+}
 
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
+setup_aliases() {
+    # Check for flatpak before aliasing codium
+    if command -v flatpak &> /dev/null; then
+        alias codium="flatpak run com.vscodium.codium "
+    else
+        ZSH_MISSING_CMDS+=('flatpak')
+    fi
+    
+    # Common quality-of-life aliases for colored and formatted output
+    alias ls='ls --color=auto'
+    alias ll='ls -lh'
+    alias la='ls -lAh'
+    alias grep='grep --color=auto'
+}
 
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
+setup_prompt() {
+    # Check for starship before initializing
+    if command -v starship &> /dev/null; then
+        eval "$(starship init zsh)"
+    else
+        ZSH_MISSING_CMDS+=('starship')
+    fi
+}
 
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
+auto_update_dotfiles() {
+    # Only run in interactive sessions to avoid breaking non-interactive scripts
+    if [[ $- == *i* ]]; then
+        # Check for git before attempting to pull
+        if command -v git &> /dev/null; then
+            
+            # Define the location of your dotfiles repository
+            # TODO: Change this path to match your actual git repository location
+            local dotfiles_repo="$HOME/.dotfiles" 
 
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
+            # Verify the directory exists and is a valid git repository
+            if [[ -d "$dotfiles_repo/.git" ]]; then
+                local GREEN='\033[0;32m'
+                local YELLOW='\033[0;33m'
+                local RED='\033[0;31m'
+                local RESET='\033[0m'
+                
+                echo -e " ${YELLOW}•${RESET} Syncing dotfiles from GitHub..."
+                
+                # Execute git commands in a subshell '()' to preserve the user's current directory
+                (
+                    cd "$dotfiles_repo" || exit
+                    
+                    # Pull changes using rebase to keep history clean.
+                    # The 'timeout 5s' command ensures the terminal won't hang if offline.
+                    if timeout 5s git pull --quiet --rebase; then
+                        echo -e "   ${GREEN}↳${RESET} Dotfiles are up to date."
+                    else
+                        echo -e "   ${RED}↳${RESET} Sync failed (offline, timeout, or merge conflict)."
+                    fi
+                )
+            fi
+        else
+            ZSH_MISSING_CMDS+=('git')
+        fi
+    fi
+}
 
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
+display_welcome_message() {
+    # Only display output in interactive sessions
+    if [[ $- == *i* ]]; then
+        # ANSI color codes
+        local GREEN='\033[0;32m'
+        local BLUE='\033[0;34m'
+        local RED='\033[0;31m'
+        local BOLD='\033[1m'
+        local RESET='\033[0m'
 
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
+        echo -e "${BLUE}${BOLD}=======================================${RESET}"
+        echo -e "${GREEN}${BOLD}   ZSH Environment Loaded Successfully ${RESET}"
+        echo -e "${BLUE}${BOLD}=======================================${RESET}"
+        
+        # Display status of prompt
+        if [[ " ${ZSH_MISSING_CMDS[*]} " =~ " starship " ]]; then
+            echo -e " • Starship Prompt: ${RED}Missing${RESET}"
+        else
+            echo -e " • Starship Prompt: ${GREEN}Active${RESET}"
+        fi
+        
+        echo -e " • Keybindings:     ${GREEN}Configured${RESET}"
+        echo -e " • History:         ${GREEN}Optimized${RESET}"
 
-source $ZSH/oh-my-zsh.sh
+        # Warn if any dependencies are missing
+        if (( ${#ZSH_MISSING_CMDS[@]} > 0 )); then
+            echo -e "\n ${RED}${BOLD}Warning:${RESET} The following commands are missing:"
+            for cmd in "${ZSH_MISSING_CMDS[@]}"; do
+                echo -e "   - ${RED}$cmd${RESET}"
+            done
+        fi
+        echo "" # Print a final empty line for clean spacing
+    fi
+}
 
-# User configuration
+# --- Execution ---
 
-# export MANPATH="/usr/local/man:$MANPATH"
+# Call all setup functions in the required order
+setup_environment
+setup_history
+setup_completion
+setup_keybindings
+setup_aliases
 
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
+# Initialize prompt and sync dotfiles
+setup_prompt
+auto_update_dotfiles
 
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
+# Display the beautified output
+display_welcome_message
 
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# Cleanup global variables so they don't linger in the shell environment
+unset ZSH_MISSING_CMDS
