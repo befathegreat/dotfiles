@@ -12,7 +12,14 @@ setup_environment() {
     # Define environment variables and paths
     export LANG=en_US.UTF-8
     export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
-    
+
+    # Set Spacemacs (via emacsclient) as the default editor
+    # -c creates a new graphical frame
+    # -t creates a new frame inside the current terminal
+    # -a '' automatically starts the Emacs daemon if it is not already running
+    export VISUAL="emacsclient -c -a ''"
+    export EDITOR="emacsclient -t -a ''"
+
     # Automatically change directories if you just type the directory name
     setopt auto_cd
 }
